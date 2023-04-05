@@ -1,20 +1,64 @@
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const { User } = require('../models')
+const { User } = require('../models');
+const { default: mongoose } = require('mongoose');
+
+function getRandomNumber(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 const signUp = async (req, res) => {
     const username = req.body.username;
-    const email = req.body.email;
     const password = req.body.password;
-    const phone = req.body.phone;
+    const confirmPassword = req.body.confirmPassword;
     const fullname = req.body.fullname;
+    const phone = req.body.phone;
+    const email = req.body.email;
+
+    let missingFields = [];
+    if (!username) missingFields.push('username');
+    if (!password) missingFields.push('password');
+    if (!fullname) missingFields.push('fullname');
+    if (!phone) missingFields.push('phone');
+    if (!email) missingFields.push('email');
+
+    if (missingFields.length > 0) {
+        return res.status(400).json({
+            message: `Missing ${missingFields.join(', ')}. Please fill in these fields`
+        })
+    } else if (password !== confirmPassword) {
+        return res.status(400).json({
+            message: 'Incorrect confirm password',
+        });
+    }
+
+    userExist = await User.findOne({ username: username});
+    if (userExist) {
+        return res.status(401).json({
+            message: 'User existed'
+        })
+    }
 
     try {
-        const hashedPass = await bcrypt.hash(password, 10);
-        const newUser = await User.create({ username, email, password: hashedPass, phone, fullname});
+        randomSalt = await bcrypt.genSalt();
+        hashedPass = await bcrypt.hash(password, randomSalt);
+        await User.create({ username, password: hashedPass, fullname, phone, email});
 
-        res.status(201).json({message: 'User create successfully', user: newUser});
+        return res.status(201).json({
+            message: "User created successfully"
+        })
     } catch (error) {
-        res.status(500).json({message: 'An error occured', error});
+        if (error instanceof mongoose.Error.ValidationError) {
+            return res.status(400).json({
+                message: "Validation error",
+                errors: error.errors,
+            })
+        } else {
+            return res.status(500).json({
+                message: "Unexpected error",
+                error
+            })
+        }
     }
 }
 
@@ -24,38 +68,28 @@ const signIn = async (req, res) => {
 
     try {
         const user = await User.findOne({ username });
-
         if (!user) {
             return res.status(404).json({
-                message: "User not found"
+                message: "User not found",
             });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-
+        const isMatch = bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({
-                message: "Incorrect password"
+                message: "Incorrect Password",
             })
         }
 
-        const token = jwt.sign({ id: user._id, username: user.username }, process.env.JWT_SECRET, {
-            expiresIn: '1h' 
+        const token = jwt.sign({ id: user._id, username: user.username}, process.env.JWT_SECRET, {
+            expiresIn: '24h',
         })
-
-        res.status(200).json({
-            message: 'User logged in successfully',
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                phone: user.phone,
-                fullname: user.fullname
-            },
+        return res.status(200).json({
+            message: "User logged in successfully",
             token,
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             message: 'An error occured',
             error,
         })
