@@ -3,22 +3,13 @@ const jwt = require('jsonwebtoken')
 const { User } = require('../models');
 const { default: mongoose } = require('mongoose');
 
-function getRandomNumber(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
 const signUp = async (req, res) => {
     const username = req.body.username;
-    const password = req.body.password;
-    const confirmPassword = req.body.confirmPassword;
-    const fullname = req.body.fullname;
     const phone = req.body.phone;
     const email = req.body.email;
 
     let missingFields = [];
     if (!username) missingFields.push('username');
-    if (!password) missingFields.push('password');
-    if (!fullname) missingFields.push('fullname');
     if (!phone) missingFields.push('phone');
     if (!email) missingFields.push('email');
 
@@ -40,9 +31,7 @@ const signUp = async (req, res) => {
     }
 
     try {
-        randomSalt = await bcrypt.genSalt();
-        hashedPass = await bcrypt.hash(password, randomSalt);
-        await User.create({ username, password: hashedPass, fullname, phone, email});
+        await User.create({ username, phone, email, });
 
         return res.status(201).json({
             message: "User created successfully"
@@ -111,7 +100,7 @@ const authenJWT = (req, res, next) => {
             next();
         })
     } else {
-        res.sendStatus(401);
+        return res.sendStatus(401);
     }
 }
 
@@ -125,9 +114,63 @@ const getUser = async (req, res) => {
     }
 }
 
+const checkUser = async (req, res) => {
+    const username = req.query.username;
+    try {
+        const user = await User.findOne({ username: username });
+        if (user) {
+            return res.sendStatus(200);
+        } else {
+            return res.sendStatus(404);
+        }
+    } catch (error) {
+        return res.status(500).json({
+            message: "Unexpected error",
+            error
+        })
+    }
+}
+
+const checkPhone = async (req, res) => {
+    const phone = req.query.phone;
+    try {
+        const user = await User.findOne({ phone: phone});
+        if (user) {
+            return res.sendStatus(200);
+        } else {
+            return res.sendStatus(404);
+        }
+    } catch (error) {
+        return res.status(500).json({
+            message: "Unexpected error",
+            error,
+        });
+    }
+}
+
+const checkEmail = async (req, res) => {
+    const email = req.query.email;
+    try {
+        const user = await User.findOne({ email: email });
+        if (user) {
+            return res.sendStatus(200);
+        } else {
+            return res.sendStatus(404);
+        }
+    } catch (error) {
+        return res.status(500).json({
+            message: "Unexpected error",
+            error,
+        });
+    }
+}
+
 module.exports = {
     signUp,
     signIn,
     getUser,
     authenJWT,
+    checkUser,
+    checkEmail,
+    checkPhone,
 }

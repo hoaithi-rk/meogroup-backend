@@ -58,6 +58,15 @@ const UserSchema = new mongoose.Schema({
     avatar: {
         type: String,
         required: false
+    },
+    active: {
+        type: Boolean,
+        default: false,
+        required: true,
+    },
+    activeToken: {
+        type: String,
+        required: true,
     }
 })
 
