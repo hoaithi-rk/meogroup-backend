@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const { User } = require('../models');
 const { default: mongoose } = require('mongoose');
+const { sendEmail } = require('../utils')
 
 const signUp = async (req, res) => {
     const username = req.body.username;
@@ -17,38 +18,70 @@ const signUp = async (req, res) => {
         return res.status(400).json({
             message: `Missing ${missingFields.join(', ')}. Please fill in these fields`
         })
-    } else if (password !== confirmPassword) {
-        return res.status(400).json({
-            message: 'Incorrect confirm password',
-        });
-    }
+    } 
 
-    userExist = await User.findOne({ username: username});
+    const userExist = await User.findOne({
+        $or: [
+            { username: username },
+            { phone: phone },
+            { email: email }
+        ]
+    })
+
     if (userExist) {
-        return res.status(401).json({
-            message: 'User existed'
+        let message = ''
+        if (userExist.username === username) {
+            message = 'Username existed'
+        }
+
+        if (userExist.phone === phone) {
+            message = 'Phone existed'
+        }
+
+        if (userExist.email === email) {
+            message = 'Email existed'
+        }
+
+        return res.status(409).json({
+            message
         })
     }
 
     try {
-        await User.create({ username, phone, email, });
-
-        return res.status(201).json({
-            message: "User created successfully"
+        const newUser = await User.create({
+            username: username,
+            phone: phone,
+            email: email,
+            active: false,
         })
+
+        const activeToken = await jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+            expiresIn: '1h',
+        })
+        newUser.set({ activeToken: activeToken})
+        newUser.save()
+
+        const activateURL = `/users/verify/?activeToken=${activeToken}`;
+        // const activateURL = `${process.env.HOST_FRONTEND}/`;
+        const mailInfo = {
+            destination: email,
+            subject: 'ConMeoMeoMeo - Verify Your Account and Set Up Your Password',
+            username: username,
+            url: activateURL,
+            message: 'You\'re almost ready to start enjoying our website',
+            messageAction: 'Please follow the link provided <br> below to set up the password',
+            action: 'Verify'
+        } 
+        await sendEmail(mailInfo);
+        res.sendStatus(200);
+
     } catch (error) {
-        if (error instanceof mongoose.Error.ValidationError) {
-            return res.status(400).json({
-                message: "Validation error",
-                errors: error.errors,
-            })
-        } else {
-            return res.status(500).json({
-                message: "Unexpected error",
-                error
-            })
-        }
+        return res.status(500).json({
+            message: 'Unexpected error',
+            error
+        })
     }
+
 }
 
 const signIn = async (req, res) => {
@@ -119,9 +152,13 @@ const checkUser = async (req, res) => {
     try {
         const user = await User.findOne({ username: username });
         if (user) {
-            return res.sendStatus(200);
+            return res.status(200).json({
+                exist: true,
+            });
         } else {
-            return res.sendStatus(404);
+            return res.status(200).json({
+                exist: false,
+            });
         }
     } catch (error) {
         return res.status(500).json({
@@ -136,9 +173,13 @@ const checkPhone = async (req, res) => {
     try {
         const user = await User.findOne({ phone: phone});
         if (user) {
-            return res.sendStatus(200);
+            return res.status(200).json({
+                exist: true,
+            })
         } else {
-            return res.sendStatus(404);
+            return res.status(200).json({
+                exist: false,
+            })
         }
     } catch (error) {
         return res.status(500).json({
@@ -153,9 +194,13 @@ const checkEmail = async (req, res) => {
     try {
         const user = await User.findOne({ email: email });
         if (user) {
-            return res.sendStatus(200);
+            return res.status(200).json({
+                exist: true,
+            });
         } else {
-            return res.sendStatus(404);
+            return res.status(200).json({
+                exist: false,
+            });
         }
     } catch (error) {
         return res.status(500).json({

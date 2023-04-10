@@ -5,7 +5,7 @@ const phoneValidator = (phone) => {
 };
 
 const usernameValidator = (username) => {
-    return /.*[a-zA-Z].*/.test(username);
+    return /.*[a-zA-Z0-9].*/.test(username);
 }
 
 const fullnameValidator = (fullname) => {
@@ -21,7 +21,7 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        minLength: 8,
+        minLength: 6,
         validate: {
             validator: usernameValidator,
             message: '${props.value} is not a valid username'
@@ -29,11 +29,11 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true,
+        required: false,
     },
     fullname: {
         type: String,
-        required: true,
+        required: false,
         validate: {
             validator: fullnameValidator,
             message: '${props.value} is not a valid name!'
@@ -42,6 +42,7 @@ const UserSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true,
+        unique: true,
         validate: {
             validator: phoneValidator,
             message: '${props.value} is not a valid phone number!'
@@ -50,6 +51,7 @@ const UserSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
+        unique: true,
         validate: {
             validator: emailValidator,
             message: '${props.value} is not a valid email!'
@@ -66,7 +68,7 @@ const UserSchema = new mongoose.Schema({
     },
     activeToken: {
         type: String,
-        required: true,
+        required: false,
     }
 })
 
