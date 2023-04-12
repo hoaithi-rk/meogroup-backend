@@ -1,9 +1,9 @@
-const { signUp, signIn, getUser, authenJWT, checkUser, checkPhone, checkEmail } = require('./auth_controller')
+const { signUp, signIn, checkVerifyToken, authenJWT, checkUser, checkPhone, checkEmail } = require('./auth_controller')
 
 module.exports = {
     signUp,
     signIn,
-    getUser,
+    checkVerifyToken,
     authenJWT,
     checkUser,
     checkEmail,

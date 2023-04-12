@@ -3,10 +3,10 @@ dotenv.config({path: './.env'});
 
 const express = require('express');
 const cors = require('cors');
-const ejs = require('ejs');
 const app = express();
 const port = 3000;
 const userRoutes = require('./routes/user_routes')
+
 
 
 const connectDB = require('./config/db.js');

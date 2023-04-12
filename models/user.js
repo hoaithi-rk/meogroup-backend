@@ -5,7 +5,7 @@ const phoneValidator = (phone) => {
 };
 
 const usernameValidator = (username) => {
-    return /.*[a-zA-Z0-9].*/.test(username);
+    return /^[a-zA-Z0-9]+$/.test(username);
 }
 
 const fullnameValidator = (fullname) => {

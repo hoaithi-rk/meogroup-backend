@@ -44,17 +44,7 @@ const sendEmail = async infoEmail => {
         html: letter,
     }
 
-    const result = await transporter.sendMail(email, function(error, info) {
-        console.log ( ' beginning emial sending '); 
-        if(error){
-            console.log('got - error here');        
-            console.log(error);
-        }else{
-            console.log ( 'no error emial sending ')
-            console.log('Message sent: ' + info.response);
-        };
-    });
-    console.log(result)
+    await transporter.sendMail(email);
 }
 
 module.exports = {

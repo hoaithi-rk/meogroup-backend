@@ -118,7 +118,50 @@ const signIn = async (req, res) => {
     }
 }
 
-const authenJWT = (req, res, next) => {
+const checkVerifyToken = async (req, res) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.sendStatus(401);
+    }
+    try {
+        const verifyToken = authHeader.split(' ')[1];
+
+        // jwt.verify(verifyToken, process.env.JWT_SECRET);
+
+        const user = await User.findOne({ activeToken: verifyToken }) 
+
+        console.log(user)
+        if (!user) {
+            return res.status(404).json({
+                message: 'not found'
+            });
+        }
+
+        return res.status(200).json({
+            message: 'found' 
+        });
+    } catch (error) {
+        if (error instanceof jwt.TokenExpiredError) {
+            return res.status(401).json({
+                message: error.message
+            })
+        }
+        
+        if (error instanceof jwt.JsonWebTokenError) {
+            return res.status(400).json({
+                message: error.message
+            })
+        }
+
+        return res.status(500).json({
+            message: error.message
+        })
+    }
+
+}
+
+const authenJWT = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (authHeader) {
@@ -134,16 +177,6 @@ const authenJWT = (req, res, next) => {
         })
     } else {
         return res.sendStatus(401);
-    }
-}
-
-const getUser = async (req, res) => {
-    try {
-        console.log(req.user);
-        await res.status(200).json({message: "hello"});
-    } catch (error) {
-        await res.status(400).json({message: "hi"});
-        console.log(error);
     }
 }
 
@@ -213,8 +246,8 @@ const checkEmail = async (req, res) => {
 module.exports = {
     signUp,
     signIn,
-    getUser,
     authenJWT,
+    checkVerifyToken,
     checkUser,
     checkEmail,
     checkPhone,
